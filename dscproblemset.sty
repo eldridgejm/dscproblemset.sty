@@ -218,19 +218,34 @@
 % ------------------------------------------------------------------------------
 
 \begin{luacode}
+    function display_without_directives(path, language)
+        os.execute("mkdir -p _build")
+        filename = os.execute("basename " .. path)
 
-    function scanproblems()
-        local f = io.popen('cd problems && fd . --max-depth 1')
-        for line in f:lines() do
-            print(line) 
-            local cmd = "\\inputproblem{" .. line .. "}"
-            tex.print(cmd)
+        local outfilename = "_build/" .. filename .. ".transformed"
+
+        local infile = io.open(path, "r")
+        local outfile = io.open(outfilename, "w")
+
+
+        for line in infile:lines() do
+            local m1 = string.match(line, "# BEGIN.*")
+            local m2 = string.match(line, "# END.*")
+            if m1 == nil and m2 == nil then
+                outfile:write(line .. "\string\n")
+            end
         end
-    end
 
+        outfile:close()
+
+        tex.print("\\inputminted{" .. language .. "}{" .. outfilename .. "}")
+
+    end
 \end{luacode}
 
-% automatically find and include problems from problem directory
-\newcommand{\scanproblems}{
-    \luadirect{scanproblems()}
+% input minted code, but first transform it by removing any lines that start with
+% "# BEGIN" or "# END". This can be used to display code with parts that are annotated
+% for automated removal (e.g., solutions)
+\newcommand{\inputsolncode}[2]{
+    \luadirect{display_without_directives("#2", "#1")}
 }
